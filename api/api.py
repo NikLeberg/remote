@@ -1,15 +1,18 @@
 # rest-api mittels Flask
-# Verwaltung von VirtualBox-VMs
+# Verwaltung von docker images
 # ToDo:
-# [/] Auflistung verfügbarer VMs
+# [ ] Auflistung verfügbarer apps/images
+# [ ] Konfigurieren / erstellen / Dockerfile
 # [ ] Einschalten
-# [ ] Pausieren / Sichern
-# [ ] Herunterfahren per ACPI
+# [ ] Pausieren / commiten / weiterfahren
 # [ ] Killen
 # [ ] Connect
 # [ ] Disconnect
-# [ ] Snapshot erstellen
-# [ ] Snapshot laden
+
+# get - holen
+# post - erstellen
+# put - aktualisieren
+# delete - löschen
 
 from flask import Flask
 from flask_restful import Resource, Api
@@ -18,62 +21,32 @@ app = Flask(__name__)
 api = Api(app)
 
 
-import virtualbox
-
-vbox = virtualbox.VirtualBox()
-session = virtualbox.Session()
+import docker
+docker = docker.from_env()
 
 
-class util():
-    def getMachine(machine):
-        return {
-            "name" : machine.name,
-            "description" : machine.description,
-            "os_type_id" : machine.os_type_id,
-            "state" : [str(machine.state), int(machine.state)],
-            "cpu_count" : machine.cpu_count,
-            "memory_size" : machine.memory_size,
-            "id_p" : machine.id_p,
-        }
-
-
-class vmList(Resource):
+class apps(Resource):
     def get(self):
         response = []
-        for machine in vbox.machines:
-            response.append(util.getMachine(machine))
+        for image in docker.images.list():
+            response.append(image.attrs)
         return response
 
-api.add_resource(vmList, "/vm")
+    def post(self):
+        response = []
+        return "Erstellen neuer Apps wird noch nicht unterstützt.", 404
 
 
-class vm(Resource):
+class app(Resource):
     def get(self, name):
-        for machine in vbox.machines:
-            if name == machine.name:
-                return util.getMachine(machine)
-        return "Virtuelle Maschine '{}' nicht gefunden.".format(name), 404
-
-    def lock(self):
-        return { "locked" : True }
-
-api.add_resource(vm, "/vm/<string:name>")
+        for image in docker.images.list():
+            if name in image.tags:
+                return image
+        return "App '{}' nicht gefunden.".format(name), 404
 
 
-class vmAction(Resource):
-    def post(self, name, action):
-        try:
-            machine = vbox.find_machine(name)
-            if action == "powerOn":
-                progress = machine.launch_vm_process(session, "gui", "")
-                print(progress)
-            elif action == "powerOff":
-                session.console.power_down()
-            return util.getMachine(machine)
-        except:
-            return "Aktion '{}' konnte auf virtueller Maschine '{}' nicht durchgeführt werden.".format(action, name), 500
-
-api.add_resource(vmAction, "/vm/<string:name>/<string:action>")
+api.add_resource(apps, "/apps")
+api.add_resource(app, "/apps/<string:name>")
 
 
 if __name__ == "__main__":
