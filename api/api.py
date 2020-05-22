@@ -14,9 +14,9 @@
 # put - aktualisieren
 # delete - löschen
 
+
 from flask import Flask
 from flask_restful import Resource, Api
-
 app = Flask(__name__)
 api = Api(app)
 
@@ -25,7 +25,7 @@ import docker
 docker = docker.from_env()
 
 
-class apps(Resource):
+class appList(Resource):
     def get(self):
         response = []
         for image in docker.images.list():
@@ -37,7 +37,7 @@ class apps(Resource):
         return "Erstellen neuer Apps wird noch nicht unterstützt.", 404
 
 
-class app(Resource):
+class appEntity(Resource):
     def get(self, name):
         for image in docker.images.list():
             if name in image.tags:
@@ -45,8 +45,8 @@ class app(Resource):
         return "App '{}' nicht gefunden.".format(name), 404
 
 
-api.add_resource(apps, "/apps")
-api.add_resource(app, "/apps/<string:name>")
+api.add_resource(appList, "/apps")
+api.add_resource(appEntity, "/apps/<string:name>")
 
 
 if __name__ == "__main__":
