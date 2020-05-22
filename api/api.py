@@ -20,6 +20,7 @@ from flask_restful import Resource, Api, reqparse
 import werkzeug
 import docker
 import base64
+import os
 
 
 # Globals
@@ -33,7 +34,7 @@ class util():
         return {
             "name" : image.tags[0].split(":")[0],
             "id" : image.short_id,
-            "comment" : image.attrs["Commend"],
+            "comment" : image.attrs["Comment"],
             "created" : image.attrs["Created"],
             "parent" : image.attrs["Parent"],
             "labels" : image.labels
@@ -51,20 +52,23 @@ class appList(Resource):
     def post(self):
         response = []
         parser = reqparse.RequestParser()
-        parser.add_argument("name", type=str, required=True, help="Name der App")
-        parser.add_argument("dockerfile", type=str, required=True, help="Dockerfile enkodiert in Base64")
-        parser.add_argument("installfile", type=werkzeug.datastructures.FileStorage, help="Optionale Installationsmedien die beim Bau der App verfügbar sind", location="files")
+        parser.add_argument("name", type=str, required=True, help="gebe den Name der App an")
+        parser.add_argument("dockerfile", type=str, required=True, help="es fehlt das Dockerfile enkodiert in Base64")
+        parser.add_argument("installfile", type=werkzeug.datastructures.FileStorage, location="files")
         args = parser.parse_args()
+        # App-Pfad erstellen
+        path = f"/home/remote/remote/{args["name"]}"
+        os.makedirs(path, exist_ok=True)
         # Dockerfile aus Base64 dekodieren und in Datei schreiben
-        dockerfile = open("Dockerfile", "w+")
+        dockerfile = open(f"{path}/Dockerfile", "w+")
         dockerfile.write(base64.decodestring(args["dockerfile"]))
         dockerfile.close()
         # Optionale Installationsdateien abspeichern
         if "installfile" in args:
             installfile = args["installfile"]
-            installfile.save("installfile")
+            installfile.save(f"{path}/installfile.zip")
 
-        return "Ich habs versucht."
+        return args
 
 
 class appEntity(Resource):
@@ -73,7 +77,7 @@ class appEntity(Resource):
             image = docker.images.get(name)
             return util.getImage(image)
         except:
-            return "App '{}' nicht gefunden.".format(name), 404
+            return f"App '{name}' nicht gefunden.", 404
 
 
 api.add_resource(appList, "/apps")
