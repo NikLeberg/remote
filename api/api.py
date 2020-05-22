@@ -16,19 +16,22 @@
 
 
 from flask import Flask
-from flask_restful import Resource, Api
+from flask_restful import Resource, Api, reqparse
+import werkzeug
+import docker
+import base64
+
+
+# Globals
 app = Flask(__name__)
 api = Api(app)
-
-
-import docker
 docker = docker.from_env()
 
 
 class util():
     def getImage(image):
         return {
-            "name" : image.tag[0].split(":")[0],
+            "name" : image.tags[0].split(":")[0],
             "id" : image.short_id,
             "comment" : image.attrs["Commend"],
             "created" : image.attrs["Created"],
@@ -47,7 +50,21 @@ class appList(Resource):
 
     def post(self):
         response = []
-        return "Erstellen neuer Apps wird noch nicht unterstützt.", 404
+        parser = reqparse.RequestParser()
+        parser.add_argument("name", type=str, required=True, help="Name der App")
+        parser.add_argument("dockerfile", type=str, required=True, help="Dockerfile enkodiert in Base64")
+        parser.add_argument("installfile", type=werkzeug.datastructures.FileStorage, help="Optionale Installationsmedien die beim Bau der App verfügbar sind", location="files")
+        args = parser.parse_args()
+        # Dockerfile aus Base64 dekodieren und in Datei schreiben
+        dockerfile = open("Dockerfile", "w+")
+        dockerfile.write(base64.decodestring(args["dockerfile"]))
+        dockerfile.close()
+        # Optionale Installationsdateien abspeichern
+        if "installfile" in args:
+            installfile = args["installfile"]
+            installfile.save("installfile")
+
+        return "Ich habs versucht."
 
 
 class appEntity(Resource):
