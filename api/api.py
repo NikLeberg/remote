@@ -39,10 +39,11 @@ class appList(Resource):
 
 class appEntity(Resource):
     def get(self, name):
-        for image in docker.images.list():
-            if name in image.tags:
-                return image
-        return "App '{}' nicht gefunden.".format(name), 404
+        try:
+            image = docker.images.get(name)
+            return image.attrs
+        except:
+            return "App '{}' nicht gefunden.".format(name), 404
 
 
 api.add_resource(appList, "/apps")
