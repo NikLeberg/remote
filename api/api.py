@@ -1,7 +1,7 @@
 # rest-api mittels Flask
 # Verwaltung von docker images
 # ToDo:
-# [ ] Auflistung verfügbarer apps/images
+# [/] Auflistung verfügbarer apps/images
 # [ ] Konfigurieren / erstellen / Dockerfile
 # [ ] Einschalten
 # [ ] Pausieren / commiten / weiterfahren
@@ -25,11 +25,24 @@ import docker
 docker = docker.from_env()
 
 
+class util():
+    def getImage(image):
+        return {
+            "name" : image.tag[0].split(":")[0],
+            "id" : image.short_id,
+            "comment" : image.attrs["Commend"],
+            "created" : image.attrs["Created"],
+            "parent" : image.attrs["Parent"],
+            "labels" : image.labels
+        }
+
+
 class appList(Resource):
     def get(self):
         response = []
         for image in docker.images.list():
-            response.append(image.attrs)
+            response.append(util.getImage(image))
+
         return response
 
     def post(self):
@@ -41,7 +54,7 @@ class appEntity(Resource):
     def get(self, name):
         try:
             image = docker.images.get(name)
-            return image.attrs
+            return util.getImage(image)
         except:
             return "App '{}' nicht gefunden.".format(name), 404
 
